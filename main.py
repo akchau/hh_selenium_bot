@@ -1,6 +1,8 @@
 import logging
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
@@ -70,6 +72,12 @@ try:
     )
     submit_button.click()
     
+    search_input = WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[data-qa="search-input"]'))
+    )
+    search_input.click()
+    search_input.send_keys(search_query)
+    search_input.send_keys(Keys.ENTER)
     time.sleep(10)
     # Получаем контейнер с полем для ввода электронной почты
     # parent_container = email_radio_button.find_element(By.XPATH, "./parent::*/following-sibling::div")
