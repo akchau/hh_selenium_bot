@@ -78,86 +78,29 @@ try:
     search_input.click()
     search_input.send_keys(search_query)
     search_input.send_keys(Keys.ENTER)
-    time.sleep(10)
-    # Получаем контейнер с полем для ввода электронной почты
-    # parent_container = email_radio_button.find_element(By.XPATH, "./parent::*/following-sibling::div")
-
-    # # Находим само поле ввода почты
-    # email_input_field = parent_container.find_element(By.TAG_NAME, "input")
-
-    # # Заполняем электронная почту
-    # email_input_field.send_keys(settings.settings.HH_EMAIL)
-
-    # time.sleep(10)
-    # # Ввод email
-    # email_input = WebDriverWait(driver, 10).until(
-    #     EC.presence_of_element_located((By.NAME, "username"))
-    # )
-    # email_input.send_keys(settings.settings.HH_EMAIL)
-
-    # # Переход к следующему полю
-    # next_button = driver.find_element(By.XPATH, "//button[@type='submit']")
-    # next_button.click()
-
-    # # Ввод пароля
-    # password_input = WebDriverWait(driver, 10).until(
-    #     EC.presence_of_element_located((By.NAME, "password"))
-    # )
-    # password_input.send_keys(settings.settings.HH_PASSWORD)
-
-    # # Вход
-    # login_submit = WebDriverWait(driver, 10).until(
-    #     EC.element_to_be_clickable((By.XPATH, "//button[@data-qa='account-login-submit']"))
-    # )
-    # login_submit.click()
-
-    # # Ожидание успешной авторизации
-    # WebDriverWait(driver, 10).until(
-    #     EC.presence_of_element_located((By.CLASS_NAME, "bloko-header-section-2"))
-    # )
     
-    # # Ожидание загрузки поля поиска
-    # search_input = WebDriverWait(driver, 10).until(
-    #     EC.presence_of_element_located((By.ID, "a11y-search-input"))
-    # )
+    vacancy_card = WebDriverWait(driver, 30).until(
+    EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-qa*="vacancy-serp__vacancy"]'))
+)
+    vacancy_card.click()
     
-    # # Ввод поискового запроса
-    # search_input.send_keys(search_query)
-    # search_input.submit()
+    # Переключаемся на новую вкладку (если открывается в новом окне)
+    driver.switch_to.window(driver.window_handles[1])
     
-    # # Ожидание загрузки результатов
-    # WebDriverWait(driver, 10).until(
-    #     EC.presence_of_element_located((By.CLASS_NAME, "vacancy-serp-item"))
-    # )
+    # Ждем загрузки страницы вакансии
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-title"]'))
+    )
     
-    # for page in range(max_pages):
-    #     # Получение содержимого текущей страницы
-    #     soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
-    #     # Парсинг вакансий
-    #     for item in soup.find_all('div', class_='vacancy-serp-item'):
-    #         title = item.find('h3')
-    #         company = item.find('div', class_='vacancy-serp-item__meta-info-company')
-    #         salary = item.find('span', class_='bloko-header-section-3')
-            
-    #         vacancies.append({
-    #             'Должность': title.text.strip() if title else '',
-    #             'Компания': company.text.strip() if company else '',
-    #             'Зарплата': salary.text.strip() if salary else 'Не указана',
-    #             'Ссылка': title.find('a')['href'] if title and title.find('a') else ''
-    #         })
-        
-    #     # Переход на следующую страницу
-    #     try:
-    #         next_button = WebDriverWait(driver, 10).until(
-    #             EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Дальше')]"))
-    #         )
-    #         next_button.click()
-    #         time.sleep(2)  # Пауза для загрузки страницы
-    #     except Exception as e:
-    #         print(f"Не удалось перейти на следующую страницу: {e}")
-    #         break
-            
+    # Теперь можно собирать данные с страницы вакансии
+    # Например:
+    title = driver.find_element(By.CSS_SELECTOR, '[data-qa="vacancy-title"]').text
+    salary = driver.find_element(By.CSS_SELECTOR, '[data-qa="vacancy-salary"]').text
+    print(f"Название: {title}, Зарплата: {salary}")
+
+except Exception as e:
+    logger.error(f"Произошла ошибка: {e}")
+
 finally:
     driver.quit()
 
