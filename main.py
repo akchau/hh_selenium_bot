@@ -92,11 +92,64 @@ try:
         EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-title"]'))
     )
     
-    # Теперь можно собирать данные с страницы вакансии
-    # Например:
-    title = driver.find_element(By.CSS_SELECTOR, '[data-qa="vacancy-title"]').text
-    salary = driver.find_element(By.CSS_SELECTOR, '[data-qa="vacancy-salary"]').text
-    print(f"Название: {title}, Зарплата: {salary}")
+    
+    company_name_element = WebDriverWait(driver, 20).until(
+    EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-company-name"]'))
+)
+
+# Извлекаем текст из элемента
+    company_name = company_name_element.text
+
+    # Выводим название компании в консоль
+    logger.info(f"Название компании: {company_name}")
+
+    # Если нужно сохранить данные, добавляем их в список vacancies
+    vacancies.append({
+        "company_name": company_name,
+    })
+
+    # Закрываем текущую вкладку и возвращаемся к предыдущей
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0])
+    
+    vacancy_cards = driver.find_elements(By.CSS_SELECTOR, '[data-qa*="vacancy-serp__vacancy"]')
+    print(vacancy_cards[10])
+    
+    for index, card in enumerate(vacancy_cards):
+        # Кликаем по карточке вакансии
+        card.click()
+        
+        # Переключаемся на новую вкладку (если открывается в новом окне)
+        WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(2))
+        driver.switch_to.window(driver.window_handles[1])
+        
+        # Ждем загрузки страницы вакансии и извлекаем название компании
+        company_name_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-company-name"]'))
+        )
+        company_name = company_name_element.text
+        
+        # Извлекаем заголовок вакансии
+        vacancy_title_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-title"]'))
+        )
+        vacancy_title = vacancy_title_element.text
+        
+        # Логируем данные
+        logger.info(f"Вакансия {index + 1}: {vacancy_title} - {company_name}")
+        
+        # Сохраняем данные
+        vacancies.append({
+            "title": vacancy_title,
+            "company": company_name,
+        })
+        
+        # Закрываем текущую вкладку и возвращаемся к предыдущей
+        driver.close()
+        driver.switch_to.window(driver.window_handles[0])
+        
+        # Ждем немного перед переходом к следующей вакансии
+        time.sleep(1)
 
 except Exception as e:
     logger.error(f"Произошла ошибка: {e}")

@@ -29,7 +29,8 @@ def disable_bad_loggers() -> None:
     """
     В данном методе указаны все логгеры которые требуется отключить.
     """
-    pass
+    logging.getLogger("selenium.webdriver.remote.remote_connection").disabled = True
+    logging.getLogger("urllib3.connectionpool").disabled = True
 
 
 def init_logger() -> None:
