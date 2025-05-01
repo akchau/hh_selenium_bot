@@ -10,15 +10,15 @@ import time
 import pandas as pd
 
 from logger import init_logger
+from scripts.auth_via_email import auth
 import settings
+from tps import VacancyType
 
-# Параметры поиска
 search_query = "Python разработчик"
-max_pages = 5  # Максимальное количество страниц для парсинга
+max_pages = 5
 
-# Настройка драйвера
 options = webdriver.ChromeOptions()
-# options.add_argument('--headless')  # Безголовый режим
+options.add_argument('--headless')
 driver = webdriver.Chrome(options=options)
 
 
@@ -30,126 +30,114 @@ logger = logging.getLogger(__name__)
 # Сбор данных
 vacancies = []
 
+
+def parse_vacancy(link):
+    """Открывает вакансию по ссылке и парсит данные"""
+    logger.debug(f"Открываем вакансию: {link}")
+    
+    driver.execute_script("window.open();")
+    driver.switch_to.window(driver.window_handles[1])
+    driver.get(link)
+
+    try:
+        # Ждём загрузки названия компании и вакансии
+        company_name_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-company-name"]'))
+        )
+        vacancy_title_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-title"]'))
+        )
+        
+        try:
+            salary_element = WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-salary-compensation-type-net"]'))
+            )
+            salary = salary_element.text.strip()
+        except Exception as e:
+            salary = "Не указана"
+        
+        company_name = company_name_element.text
+        vacancy_title = vacancy_title_element.text
+
+        logger.debug(f"Получена вакансия: {vacancy_title} — {company_name}")
+
+        vacancies.append(VacancyType(
+            title=vacancy_title,
+            company=company_name,
+            salary=salary
+        ))
+
+    except Exception as e:
+        logger.error(f"Ошибка при парсинге вакансии {link}: {e}")
+
+    finally:
+        # Закрываем вкладку
+        driver.close()
+        driver.switch_to.window(driver.window_handles[0])
+        time.sleep(1)
+
+
+def get_vacancy_links():
+    """Собирает ссылки на вакансии со страницы"""
+    links = []
+    cards = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'a[data-qa="serp-item__title"]'))
+    )
+    logger.debug(f"Найдено карточек {len(cards)}")
+    for card in cards:
+        href = card.get_attribute("href")
+        if href and "hh.ru/vacancy" in href:
+            links.append(href)
+    return links
+
+
+def go_to_next_page(page):
+    """Переход на следующую страницу"""
+    try:
+        next_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//a[@data-qa="pager-next"]'))
+        )
+        driver.execute_script("arguments[0].scrollIntoView(true);", next_button)
+        time.sleep(0.5)  # небольшая пауза для прогрузки после скролла
+        next_button.click()
+        logger.debug(f"Перешли на страницу {page + 1}")
+        time.sleep(2)  # Ждём прогрузки страницы
+        return True
+    except Exception as e:
+        logger.info("Больше нет страниц.")
+        raise e
+        # return False
+
+
 try:
     # Переход на главную страницу
     driver.get("https://hh.ru")
-    
-    # Клик на "Войти"
-    login_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//a[contains(@href,'account/login')]"))
-    )
-    login_button.click()
 
-    submit_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, '//button[.//span[contains(text(), "Войти")]]'))
-    )
-    
-    submit_button.click()
+    # Авторизация
+    auth(driver, settings.settings.HH_EMAIL, settings.settings.HH_PASSWORD)
 
-    label = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, '//label[.//input[@data-qa="credential-type-EMAIL"]]'))
-    )
-    label.click()
-
-    email_input = WebDriverWait(driver, 10).until(
-    EC.visibility_of_element_located((By.CSS_SELECTOR, 'input[data-qa="applicant-login-input-email"]'))
-)
-
-    # Очистка поля и ввод пароля
-    email_input.clear()
-    email_input.send_keys(settings.settings.HH_EMAIL)
-
-    submit_button = WebDriverWait(driver, 10).until(
-    EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-qa="expand-login-by-password"]'))
-)
-    submit_button.click()
-    
-    password_field = driver.find_element(By.CSS_SELECTOR, "input[data-qa='applicant-login-input-password']")
-    password_field.send_keys(settings.settings.HH_PASSWORD)
-    
-    submit_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-qa="submit-button"]'))
-    )
-    submit_button.click()
-    
+    # Поиск вакансий
     search_input = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[data-qa="search-input"]'))
     )
     search_input.click()
     search_input.send_keys(search_query)
     search_input.send_keys(Keys.ENTER)
-    
-    vacancy_card = WebDriverWait(driver, 30).until(
-    EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-qa*="vacancy-serp__vacancy"]'))
-)
-    vacancy_card.click()
-    
-    # Переключаемся на новую вкладку (если открывается в новом окне)
-    driver.switch_to.window(driver.window_handles[1])
-    
-    # Ждем загрузки страницы вакансии
-    WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-title"]'))
-    )
-    
-    
-    company_name_element = WebDriverWait(driver, 20).until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-company-name"]'))
-)
 
-# Извлекаем текст из элемента
-    company_name = company_name_element.text
+    for page in range(max_pages):
+        logger.debug(f"Обрабатываем страницу {page + 1}")
 
-    # Выводим название компании в консоль
-    logger.info(f"Название компании: {company_name}")
+        # # Собираем ссылки на вакансии
+        links = get_vacancy_links()
+        logger.debug(f"Найдено {len(links)} вакансий на странице {page + 1}")
 
-    # Если нужно сохранить данные, добавляем их в список vacancies
-    vacancies.append({
-        "company_name": company_name,
-    })
+        # Парсим каждую вакансию
+        for link in links:
+            parse_vacancy(link)
 
-    # Закрываем текущую вкладку и возвращаемся к предыдущей
-    driver.close()
-    driver.switch_to.window(driver.window_handles[0])
-    
-    vacancy_cards = driver.find_elements(By.CSS_SELECTOR, '[data-qa*="vacancy-serp__vacancy"]')
-    print(vacancy_cards[10])
-    
-    for index, card in enumerate(vacancy_cards):
-        # Кликаем по карточке вакансии
-        card.click()
-        
-        # Переключаемся на новую вкладку (если открывается в новом окне)
-        WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(2))
-        driver.switch_to.window(driver.window_handles[1])
-        
-        # Ждем загрузки страницы вакансии и извлекаем название компании
-        company_name_element = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-company-name"]'))
-        )
-        company_name = company_name_element.text
-        
-        # Извлекаем заголовок вакансии
-        vacancy_title_element = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-qa="vacancy-title"]'))
-        )
-        vacancy_title = vacancy_title_element.text
-        
-        # Логируем данные
-        logger.info(f"Вакансия {index + 1}: {vacancy_title} - {company_name}")
-        
-        # Сохраняем данные
-        vacancies.append({
-            "title": vacancy_title,
-            "company": company_name,
-        })
-        
-        # Закрываем текущую вкладку и возвращаемся к предыдущей
-        driver.close()
-        driver.switch_to.window(driver.window_handles[0])
-        
-        # Ждем немного перед переходом к следующей вакансии
-        time.sleep(1)
+        # Переходим на следующую страницу
+        if not go_to_next_page(page):
+            break
 
 except Exception as e:
     logger.error(f"Произошла ошибка: {e}")
@@ -158,7 +146,8 @@ finally:
     driver.quit()
 
 # Сохранение в Excel
-df = pd.DataFrame(vacancies)
-df.to_excel(f"{search_query}_вакансии.xlsx", index=False)
+df = pd.DataFrame([model.dict() for model in vacancies])
+filename = f"{search_query}_вакансии.xlsx"
+df.to_excel(filename, index=False)
 
-print(f"Сохранено {len(vacancies)} вакансий")
+print(f"Сохранено {len(vacancies)} вакансий в файл {filename}")
