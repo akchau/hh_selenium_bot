@@ -9,7 +9,7 @@ from settings import settings
 logger = logging.getLogger()
 debug_level = logging.DEBUG
 production_level = logging.INFO
-LOG_LEVEL = debug_level if debug_level else production_level
+LOG_LEVEL = debug_level if settings.DEBUG else production_level
 
 max_rotate_file_bytes = 1024 * 1024 * 300
 
