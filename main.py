@@ -19,7 +19,7 @@ max_pages = 50
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
 driver = webdriver.Chrome(options=options)
-
+driver.set_page_load_timeout(100)
 
 
 init_logger()
