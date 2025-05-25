@@ -1,13 +1,11 @@
 import logging
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
 
 from file_savers.excel_saver import ExcelSaver
+
 from logger import init_logger
+
 from scripts.auth_via_email import AuthViaEmailPasssword
 from scripts.collect_vacancy_links import CollectVacancyLinks
 from scripts.go_to_next_page import GoToNextPageScript
@@ -19,7 +17,7 @@ search_query = "Python разработчик"
 max_pages = 50
 
 options = webdriver.ChromeOptions()
-# options.add_argument('--headless')
+options.add_argument('--headless')
 driver = webdriver.Chrome(options=options)
 
 
