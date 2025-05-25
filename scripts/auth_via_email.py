@@ -12,8 +12,21 @@ logger = logging.getLogger(__name__)
 
 
 class AuthViaEmailPasssword(BaseAction):
+    """
+    Скрипт 
+
+    Args:
+        BaseAction (_type_): _description_
+    """
     
-    def execute(self, email: str, password: str):
+    def execute(self, email: str, password: str) -> None:
+        """
+        Авторизация на сайте через пароль.
+
+        Args:
+            email (str): _description_
+            password (str): _description_
+        """
         logger.info("Авторизуемся через email и пароль")
         login_button = WebDriverWait(self._driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//a[contains(@href,'account/login')]"))

@@ -21,6 +21,7 @@ options.add_argument('--headless')
 driver = webdriver.Chrome(options=options)
 
 
+
 init_logger()
 
 
@@ -51,7 +52,6 @@ try:
                 vacancies.append(parsed_vacancy)
             else:
                 logger.info(f"При парсинге вакансии по ссылке {link} произошла ошибка.")
-            break
         # Переходим на следующую страницу
         if not GoToNextPageScript(driver).execute(page):
             break
