@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class GoToNextPageScript(BaseAction):
     
-    def go_to_next_page(self, page):
+    def execute(self, page):
         """
         Переход на следующую страницу на странице списка вакансий.
 
@@ -26,7 +26,7 @@ class GoToNextPageScript(BaseAction):
             self._driver.execute_script("arguments[0].scrollIntoView(true);", next_button)
             time.sleep(0.5)
             next_button.click()
-            logger.debug(f"Перешли на страницу {page + 1}")
+            logger.debug(f"Перешли на страницу {page + 2}")
             time.sleep(2)
             return True
         except Exception as e:

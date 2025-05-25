@@ -16,7 +16,7 @@ from scripts.search_vacancy import SearchVacancy
 from settings import settings
 
 search_query = "Python разработчик"
-max_pages = 2
+max_pages = 50
 
 options = webdriver.ChromeOptions()
 # options.add_argument('--headless')
@@ -29,30 +29,6 @@ init_logger()
 logger = logging.getLogger(__name__)
 
 
-def go_to_next_page(page):
-    """
-    Переход на следующую страницу на странице списка вакансий.
-    
-    Находит кнопку перехода на следующую страницу.
-    Нажимает ее.
-    Ждет загрузки страницы.
-    """
-    try:
-        logger.debug(f"Мы на странице {page}")
-        next_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, '//a[@data-qa="pager-next"]'))
-        )
-        driver.execute_script("arguments[0].scrollIntoView(true);", next_button)
-        time.sleep(0.5)
-        next_button.click()
-        logger.debug(f"Перешли на страницу {page + 1}")
-        time.sleep(1)
-        return True
-    except Exception as e:
-        logger.debug("Больше нет страниц.")
-        raise e
-
-
 try:
     vacancies = []
     # Переход на главную страницу
@@ -63,12 +39,13 @@ try:
     SearchVacancy(driver).execute(search_query)
 
     for page in range(max_pages):
+
         logger.info(f"Обрабатываем страницу {page}")
 
         links = CollectVacancyLinks(driver).execute()
 
-        logger.debug(f"Найдено {len(links)} вакансий на странице {page}")
-        for link in links[0:10]:
+        logger.debug(f"Найдено {len(links)} вакансий на странице {page+1}")
+        for link in links:
             logger.info(f"Пытаемся получить данные по ссылке вакансии {link}")
             parsed_vacancy = ParseVacancyScript(driver).execute(link)
             if parsed_vacancy:
@@ -76,11 +53,11 @@ try:
                 vacancies.append(parsed_vacancy)
             else:
                 logger.info(f"При парсинге вакансии по ссылке {link} произошла ошибка.")
-
-        # Переходим на следующую страницу
-        # if not GoToNextPageScript(driver).execute(page):
-        if not go_to_next_page(page):
             break
+        # Переходим на следующую страницу
+        if not GoToNextPageScript(driver).execute(page):
+            break
+    logger.info(f"Страницы закончились или достигли предельного значения.")
 
 except Exception as e:
     logger.error(f"Произошла ошибка: {e}")
